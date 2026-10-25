@@ -5,6 +5,7 @@
 
 #include "tools/tool_registry.h"
 #include <cstdint>
+#include <utility>
 
 ToolRegistry::ToolRegistry() : buckets_(16) {}
 ToolRegistry::~ToolRegistry() = default;   // unique_ptrs in your buckets free the tools
@@ -18,12 +19,37 @@ std::size_t ToolRegistry::hash(std::string_view key) noexcept {
     return static_cast<std::size_t>(h);
 }
 
-bool ToolRegistry::add(std::unique_ptr<Tool> /*tool*/) {
-    return false;   // TODO
+bool ToolRegistry::add(std::unique_ptr<Tool> tool) {
+    if (!tool || find(tool->name()) != nullptr) {
+        return false;
+    }
+
+    // Grow before the next insertion would exceed a load factor of 1.0.
+    if (size_ == buckets_.size()) {
+        std::vector<std::vector<std::unique_ptr<Tool>>> new_buckets(buckets_.size() * 2);
+        for (auto& bucket : buckets_) {
+            for (auto& existing : bucket) {
+                const auto index = hash(existing->name()) % new_buckets.size();
+                new_buckets[index].push_back(std::move(existing));
+            }
+        }
+        buckets_ = std::move(new_buckets);
+    }
+
+    const auto index = hash(tool->name()) % buckets_.size();
+    buckets_[index].push_back(std::move(tool));
+    ++size_;
+    return true;
 }
 
-Tool* ToolRegistry::find(std::string_view /*name*/) const {
-    return nullptr;   // TODO
+Tool* ToolRegistry::find(std::string_view name) const {
+    const auto& bucket = buckets_[hash(name) % buckets_.size()];
+    for (const auto& tool : bucket) {
+        if (tool->name() == name) {
+            return tool.get();
+        }
+    }
+    return nullptr;
 }
 
 std::size_t ToolRegistry::size() const noexcept {
