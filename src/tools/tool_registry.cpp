@@ -1,7 +1,7 @@
 // src/tools/tool_registry.cpp — YOU IMPLEMENT (spec §4.3).
 //
 // A hand-written hash table. No std::unordered_map / std::map / std::set.
-// Every function below is a stub so the starter compiles. Replace each body.
+// Separate chaining with a maximum load factor of 1.0.
 
 #include "tools/tool_registry.h"
 #include <cstdint>
@@ -56,18 +56,28 @@ std::size_t ToolRegistry::size() const noexcept {
     return size_;
 }
 
-void ToolRegistry::for_each(const std::function<void(const Tool&)>& /*fn*/) const {
-    // TODO
+void ToolRegistry::for_each(const std::function<void(const Tool&)>& fn) const {
+    for (const auto& bucket : buckets_) {
+        for (const auto& tool : bucket) {
+            fn(*tool);
+        }
+    }
 }
 
 std::size_t ToolRegistry::bucket_count() const noexcept {
-    return 0;   // TODO
+    return buckets_.size();
 }
 
 double ToolRegistry::load_factor() const noexcept {
-    return 0.0;   // TODO
+    return static_cast<double>(size_) / buckets_.size();
 }
 
 std::size_t ToolRegistry::max_probe_length() const {
-    return 0;   // TODO
+    std::size_t longest = 0;
+    for (const auto& bucket : buckets_) {
+        if (bucket.size() > longest) {
+            longest = bucket.size();
+        }
+    }
+    return longest;
 }
