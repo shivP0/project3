@@ -100,3 +100,9 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/e2e/run_e2e.sh)
            COMMAND bash ${CMAKE_SOURCE_DIR}/tests/e2e/run_e2e.sh $<TARGET_FILE:miniharness>
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()
+
+# Apple's SDK declares mkdtemp in unistd.h; the provided test helper uses it.
+if(APPLE)
+  target_compile_options(test_p3 PRIVATE -include unistd.h)
+  target_compile_options(test_loop PRIVATE -include unistd.h)
+endif()
